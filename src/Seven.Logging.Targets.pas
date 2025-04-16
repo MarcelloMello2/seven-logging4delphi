@@ -32,7 +32,8 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils,
+  Seven.Logging.LogLevels;
 
 { TConsoleTarget }
 
