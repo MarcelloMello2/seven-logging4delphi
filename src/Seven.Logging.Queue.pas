@@ -11,10 +11,11 @@ type
   TLogQueue = class
   private
     FQueue: TThreadedQueue<TLogMessage>;
+//    FEvent: TEvent;
   public
-    FEvent: TEvent;
     constructor Create;
     destructor Destroy; override;
+    procedure ShutDown();
     procedure Enqueue(const Msg: TLogMessage);
     function Dequeue(out Msg: TLogMessage): Boolean;
   end;
@@ -25,6 +26,7 @@ type
     FTargets: TList<ILogTarget>;
   protected
     procedure Execute; override;
+    procedure TerminatedSet; override;
   public
     constructor Create(Queue: TLogQueue; Targets: TList<ILogTarget>);
     destructor Destroy; override;
@@ -37,20 +39,25 @@ implementation
 constructor TLogQueue.Create;
 begin
   FQueue := TThreadedQueue<TLogMessage>.Create(1000);
-  FEvent := TEvent.Create;
+//  FEvent := TEvent.Create;
 end;
 
 destructor TLogQueue.Destroy;
 begin
   FQueue.Free;
-  FEvent.Free;
+//  FEvent.Free;
   inherited;
+end;
+
+procedure TLogQueue.ShutDown;
+begin
+  FQueue.DoShutDown();
 end;
 
 procedure TLogQueue.Enqueue(const Msg: TLogMessage);
 begin
   FQueue.PushItem(Msg);
-  FEvent.SetEvent;
+//  FEvent.SetEvent;
 end;
 
 function TLogQueue.Dequeue(out Msg: TLogMessage): Boolean;
@@ -87,8 +94,16 @@ begin
         Target.WriteLog(Msg);
     end
     else
-      FQueue.FEvent.WaitFor(1000);
+    begin
+//      FQueue.FEvent.WaitFor();
+    end;
   end;
+end;
+
+procedure TLogWriterThread.TerminatedSet;
+begin
+  inherited;
+  FQueue.ShutDown();
 end;
 
 end.

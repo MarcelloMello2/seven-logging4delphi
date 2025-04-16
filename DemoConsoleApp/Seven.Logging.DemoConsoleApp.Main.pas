@@ -6,17 +6,21 @@ uses
   Seven.Logging, Seven.Logging.Queue, Seven.Logging.Targets, Seven.Logging.Impl, System.Generics.Collections;
 
 type
+
   TMyService = class
   end;
 
-procedure Run;
+  TDemoConsoleApp = class sealed
+    class procedure Run(); static;
+  end;
+
 
 implementation
 
 uses
   System.SysUtils;
 
-procedure Run;
+class procedure TDemoConsoleApp.Run();
 var
   Queue: TLogQueue;
   Targets: TList<ILogTarget>;
@@ -55,7 +59,7 @@ begin
     Sleep(100);
   finally
     WriterThread.Terminate;
-    Queue.FEvent.SetEvent;
+//    Queue.FEvent.SetEvent;
     WriterThread.WaitFor;
     WriterThread.Free;
     Queue.Free;
