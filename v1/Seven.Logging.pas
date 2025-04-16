@@ -1,11 +1,9 @@
-﻿unit Seven.Logging;
-
-{$SCOPEDENUMS ON}
+unit Seven.Logging;
 
 interface
 
 uses
-  Seven.Logging.LogLevels, System.Generics.Collections, System.SysUtils;
+  Seven.Logging.LogLevels, System.Generics.Collections;
 
 type
   TLogLevel = Seven.Logging.LogLevels.TLogLevel;
@@ -14,7 +12,7 @@ type
 
   ILogger = interface
     ['{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}']
-    procedure Log(Level: TLogLevel; const Message: string; Exception: Exception = nil);
+    procedure Log(Level: TLogLevel; const Message: string);
     function IsEnabled(Level: TLogLevel): Boolean;
     function BeginScope(const ScopeName: string): ILogScope;
   end;
@@ -30,12 +28,6 @@ type
     Message: string;
     Timestamp: TDateTime;
     Scope: string;
-    ExceptionMessage: string;
-  end;
-
-  ILogTarget = interface
-    ['{C3D4E5F6-7890-1234-CDEF-123456789012}']
-    procedure WriteLog(const Msg: TLogMessage);
   end;
 
 implementation

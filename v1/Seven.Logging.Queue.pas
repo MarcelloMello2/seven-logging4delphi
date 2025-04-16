@@ -1,18 +1,20 @@
 ﻿unit Seven.Logging.Queue;
 
-{$SCOPEDENUMS ON}
-
 interface
 
 uses
-  System.Classes, System.Generics.Collections, Seven.Logging, System.SyncObjs;
+  System.Classes,
+  System.Generics.Collections,
+  System.SyncObjs,
+  Seven.Logging,
+  Seven.Logging.Targets;
 
 type
   TLogQueue = class
   private
     FQueue: TThreadedQueue<TLogMessage>;
-    FEvent: TEvent;
   public
+    FEvent: TEvent;
     constructor Create;
     destructor Destroy; override;
     procedure Enqueue(const Msg: TLogMessage);

@@ -1,13 +1,16 @@
 ﻿unit Seven.Logging.Targets;
 
-{$SCOPEDENUMS ON}
-
 interface
 
 uses
-  Seven.Logging, System.Classes, System.IOUtils;
+  Seven.Logging, System.Classes;
 
 type
+  ILogTarget = interface
+    ['{C3D4E5F6-7890-1234-CDEF-123456789012}']
+    procedure WriteLog(const Msg: TLogMessage);
+  end;
+
   TConsoleTarget = class(TInterfacedObject, ILogTarget)
   public
     procedure WriteLog(const Msg: TLogMessage);
@@ -32,23 +35,20 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils,
+  System.IOUtils,
+  Seven.Logging.LogLevels;
 
 { TConsoleTarget }
 
 procedure TConsoleTarget.WriteLog(const Msg: TLogMessage);
-var
-  LogLine: string;
 begin
-  LogLine := Format('[%s] %s [%s]: %s', [
+  WriteLn(Format('[%s] %s [%s]: %s', [
     DateTimeToStr(Msg.Timestamp),
     Msg.Category,
     LogLevelToString(Msg.Level),
     Msg.Message
-  ]);
-  if Msg.ExceptionMessage <> '' then
-    LogLine := LogLine + ' - Exception: ' + Msg.ExceptionMessage;
-  WriteLn(LogLine);
+  ]));
 end;
 
 { TFileTarget }
@@ -68,8 +68,6 @@ begin
     LogLevelToString(Msg.Level),
     Msg.Message
   ]);
-  if Msg.ExceptionMessage <> '' then
-    LogLine := LogLine + ' - Exception: ' + Msg.ExceptionMessage;
   TFile.AppendAllText(FFileName, LogLine + sLineBreak);
 end;
 
@@ -84,12 +82,8 @@ procedure TXmlFileTarget.WriteLog(const Msg: TLogMessage);
 var
   XmlLine: string;
 begin
-  if Msg.ExceptionMessage <> '' then
-    XmlLine := Format('<log timestamp="%s" category="%s" level="%s" exception="%s">%s</log>',
-      [DateTimeToStr(Msg.Timestamp), StringReplace(Msg.Category, '"', '&quot;', [rfReplaceAll]), LogLevelToString(Msg.Level), StringReplace(Msg.ExceptionMessage, '"', '&quot;', [rfReplaceAll]), StringReplace(Msg.Message, '"', '&quot;', [rfReplaceAll])])
-  else
-    XmlLine := Format('<log timestamp="%s" category="%s" level="%s">%s</log>',
-      [DateTimeToStr(Msg.Timestamp), StringReplace(Msg.Category, '"', '&quot;', [rfReplaceAll]), LogLevelToString(Msg.Level), StringReplace(Msg.Message, '"', '&quot;', [rfReplaceAll])]);
+  XmlLine := Format('<log timestamp="%s" category="%s" level="%s">%s</log>',
+    [DateTimeToStr(Msg.Timestamp), Msg.Category, LogLevelToString(Msg.Level), Msg.Message]);
   TFile.AppendAllText(FFileName, XmlLine + sLineBreak);
 end;
 
