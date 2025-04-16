@@ -104,7 +104,6 @@
         <DCCReference Include="..\src\Seven.Logging.pas"/>
         <DCCReference Include="..\src\Seven.Logging.Queue.pas"/>
         <DCCReference Include="..\src\Seven.Logging.Targets.pas"/>
-        <DCCReference Include="..\src\Seven.Logging.FileLogger.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

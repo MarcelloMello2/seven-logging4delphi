@@ -11,8 +11,8 @@ type
   TLogQueue = class
   private
     FQueue: TThreadedQueue<TLogMessage>;
-    FEvent: TEvent;
   public
+    FEvent: TEvent;
     constructor Create;
     destructor Destroy; override;
     procedure Enqueue(const Msg: TLogMessage);

@@ -3,11 +3,7 @@ unit Seven.Logging.DemoConsoleApp.Main;
 interface
 
 uses
-  System.Generics.Collections,
-  Seven.Logging,
-  Seven.Logging.Queue,
-  Seven.Logging.Targets,
-  Seven.Logging.Impl;
+  Seven.Logging, Seven.Logging.Queue, Seven.Logging.Targets, Seven.Logging.Impl, System.Generics.Collections;
 
 type
   TMyService = class
@@ -17,13 +13,16 @@ procedure Run;
 
 implementation
 
+uses
+  System.SysUtils;
+
 procedure Run;
 var
   Queue: TLogQueue;
+  Targets: TList<ILogTarget>;
   WriterThread: TLogWriterThread;
   Logger: ILogger;
   Scope: ILogScope;
-  Targets: TList<ILogTarget>;
 begin
   Queue := TLogQueue.Create;
   Targets := TList<ILogTarget>.Create;
@@ -39,17 +38,26 @@ begin
     Scope := Logger.BeginScope('OperacaoCritica');
     try
       Logger.Log(TLogLevel.Debug, 'Fazendo algo importante');
+      // Simulate an exception
+      try
+        raise Exception.Create('Test exception');
+      except
+        on E: Exception do
+          Logger.Log(TLogLevel.Error, 'Erro na operação', E);
+      end;
     finally
-      Scope.EndScope;
+      Scope := nil; // End scope
     end;
 
     Logger.Log(TLogLevel.Info, 'Fim da operação');
 
+    // Wait a bit to ensure logs are written
+    Sleep(100);
+  finally
     WriterThread.Terminate;
     Queue.FEvent.SetEvent;
     WriterThread.WaitFor;
     WriterThread.Free;
-  finally
     Queue.Free;
   end;
 end;

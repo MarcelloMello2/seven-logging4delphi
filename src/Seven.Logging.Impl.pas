@@ -3,7 +3,7 @@
 interface
 
 uses
-  Seven.Logging, Seven.Logging.Queue, System.Generics.Collections, System.Rtti;
+  Seven.Logging, Seven.Logging.Queue, System.Generics.Collections, System.Rtti, System.SysUtils;
 
 type
   TLogScope = class(TInterfacedObject, ILogScope)
@@ -34,9 +34,6 @@ type
   end;
 
 implementation
-
-uses
-  System.SysUtils;
 
 { TLogScope }
 
