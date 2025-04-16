@@ -15,12 +15,6 @@ type
     procedure Log(Level: TLogLevel; const Message: string);
     function IsEnabled(Level: TLogLevel): Boolean;
     function BeginScope(const ScopeName: string): ILogScope;
-    procedure Trace(const Msg: string);
-    procedure Debug(const Msg: string);
-    procedure Info(const Msg: string);
-    procedure Warning(const Msg: string);
-    procedure Error(const Msg: string);
-    procedure Fatal(const Msg: string);
   end;
 
   ILogScope = interface
