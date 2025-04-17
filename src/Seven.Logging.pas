@@ -14,7 +14,6 @@ uses
   System.SyncObjs;
 
 type
-  ILogScopeDispose = interface;
 
   /// <summary>
   /// Define os níveis de severidade de log.
@@ -63,6 +62,220 @@ type
     None
   );
 
+  /// <summary>
+  /// Flags para indicar quais partes do contexto de rastreamento devem ser incluídas nos escopos de log.
+  /// </summary>
+  TActivityTrackingOption = (
+    /// <summary>
+    /// ID do Span será incluído no log.
+    /// </summary>
+    SpanId,
+
+    /// <summary>
+    /// ID do Trace será incluído no log.
+    /// </summary>
+    TraceId,
+
+    /// <summary>
+    /// ID do Pai será incluído no log.
+    /// </summary>
+    ParentId,
+
+    /// <summary>
+    /// Estado do Trace será incluído no log.
+    /// </summary>
+    TraceState,
+
+    /// <summary>
+    /// Flags do Trace serão incluídas no log.
+    /// </summary>
+    TraceFlags,
+
+    /// <summary>
+    /// Tags serão incluídas no log.
+    /// </summary>
+    Tags,
+
+    /// <summary>
+    /// Itens de bagagem serão incluídos no log.
+    /// </summary>
+    Baggage
+  );
+
+  /// <summary>
+  /// Conjunto de opções de rastreamento de atividade.
+  /// </summary>
+  TActivityTrackingOptions = set of TActivityTrackingOption;
+
+  /// <summary>
+  ///   Fornece um mecanismo para liberar recursos não gerenciados.
+  /// </summary>
+  IDisposable = interface
+    ['{FA2E3193-9311-452D-A15E-542E9BC03F5B}']
+
+    /// <summary>
+    ///   Realiza tarefas definidas pelo aplicativo associadas à liberação ou à redefinição
+    ///   de recursos não gerenciados.
+    /// </summary>
+    procedure Dispose();
+  end;
+
+  ILogScopeDispose = interface;
+
+  /// <summary>
+  /// Define uma regra usada para filtrar mensagens de log
+  /// </summary>
+  TLoggerFilterRule = class
+  private
+    FProviderName: string;
+    FCategoryName: string;
+    FLogLevel: TLogLevel;
+    FHasLogLevel: Boolean;
+    FFilter: TFunc<string, string, TLogLevel, Boolean>;
+  public
+    /// <summary>
+    /// Cria uma nova instância de <see cref="TLoggerFilterRule"/>.
+    /// </summary>
+    /// <param name="ProviderName">O nome do provedor a ser usado nesta regra de filtro.</param>
+    /// <param name="CategoryName">O nome da categoria a ser usado nesta regra de filtro.</param>
+    /// <param name="LogLevel">O <see cref="TLogLevel"/> a ser usado nesta regra de filtro.</param>
+    /// <param name="Filter">O filtro a ser aplicado.</param>
+    constructor Create(const ProviderName: string = '';
+                       const CategoryName: string = '';
+                       LogLevel: TLogLevel = TLogLevel.None;
+                       HasLogLevel: Boolean = False;
+                       Filter: TFunc<string, string, TLogLevel, Boolean> = nil);
+
+    /// <summary>
+    /// Obtém o tipo ou alias do provedor de logger ao qual esta regra se aplica.
+    /// </summary>
+    property ProviderName: string read FProviderName;
+
+    /// <summary>
+    /// Obtém a categoria de logger à qual esta regra se aplica.
+    /// </summary>
+    property CategoryName: string read FCategoryName;
+
+    /// <summary>
+    /// Obtém o <see cref="TLogLevel"/> mínimo das mensagens.
+    /// </summary>
+    property LogLevel: TLogLevel read FLogLevel;
+
+    /// <summary>
+    /// Indica se um LogLevel foi especificado para esta regra.
+    /// </summary>
+    property HasLogLevel: Boolean read FHasLogLevel;
+
+    /// <summary>
+    /// Obtém a função delegada de filtro que seria aplicada às mensagens que passaram pelo <see cref="TLogLevel"/>.
+    /// </summary>
+    property Filter: TFunc<string, string, TLogLevel, Boolean> read FFilter;
+
+    /// <inheritdoc/>
+    function ToString: string; override;
+  end;
+
+  /// <summary>
+  /// Recupera instâncias configuradas de <typeparamref name="TOptions"/>.
+  /// </summary>
+  /// <typeparam name="TOptions">O tipo de opções sendo solicitado.</typeparam>
+  IOptions<TOptions: class> = interface
+    ['{F5A8C6B7-D9E0-4123-A4B5-C6D7E8F9A0B1}'] // GUID único para a interface
+
+    /// <summary>
+    /// Obtém a instância padrão configurada de <typeparamref name="TOptions"/>.
+    /// </summary>
+    function GetValue: TOptions;
+
+    /// <summary>
+    /// Obtém a instância padrão configurada de <typeparamref name="TOptions"/>.
+    /// </summary>
+    property Value: TOptions read GetValue;
+  end;
+
+
+  /// <summary>
+  /// Representa um armazenamento de dados de escopo comuns.
+  /// </summary>
+  IExternalScopeProvider = interface
+    ['{D6E7F8A9-B0C1-42D3-E4F5-A6B7C8D9E0F1}'] // GUID único para a interface
+
+    /// <summary>
+    /// Executa callback para cada objeto de escopo atualmente ativo em ordem de criação.
+    /// Todos os callbacks têm garantia de serem chamados em linha a partir deste método.
+    /// </summary>
+    /// <param name="Callback">O callback a ser executado para cada objeto de escopo.</param>
+    /// <param name="State">O objeto de estado a ser passado para o callback.</param>
+    /// <typeparam name="TState">O tipo de estado a ser aceito.</typeparam>
+    procedure ForEachScope(const Callback: TProc<TObject, TValue>; const State: TValue);
+
+    /// <summary>
+    /// Adiciona objeto de escopo à lista.
+    /// </summary>
+    /// <param name="State">O objeto de escopo.</param>
+    /// <returns>O token <see cref="IDisposable"/> que remove o escopo ao ser liberado.</returns>
+    function Push(const State: TObject): IDisposable;
+  end;
+
+  /// <summary>
+  /// As opções para um LoggerFilter.
+  /// </summary>
+  TLoggerFilterOptions = class
+  private
+    FCaptureScopes: Boolean;
+    FMinLevel: TLogLevel;
+    FRulesInternal: TList<TLoggerFilterRule>;
+
+    function GetRules: TList<TLoggerFilterRule>;
+
+  public
+    /// <summary>
+    /// Cria uma nova instância de <see cref="TLoggerFilterOptions"/>.
+    /// </summary>
+    constructor Create;
+    destructor Destroy; override;
+
+    /// <summary>
+    /// Obtém ou define um valor indicando se os escopos de log estão sendo capturados.
+    /// </summary>
+    /// <value>
+    /// O valor padrão é <see langword="True" />
+    /// </value>
+    property CaptureScopes: Boolean read FCaptureScopes write FCaptureScopes;
+
+    /// <summary>
+    /// Obtém ou define o nível mínimo das mensagens de log se nenhuma das regras corresponder.
+    /// </summary>
+    property MinLevel: TLogLevel read FMinLevel write FMinLevel;
+
+    /// <summary>
+    /// Obtém a coleção de <see cref="TLoggerFilterRule"/> usada para filtrar mensagens de log.
+    /// </summary>
+    property Rules: TList<TLoggerFilterRule> read GetRules;
+
+    /// <summary>
+    /// Retorna uma string para depuração.
+    /// </summary>
+    function DebuggerToString: string;
+  end;
+
+  /// <summary>
+  /// As opções para uma LoggerFactory.
+  /// </summary>
+  TLoggerFactoryOptions = class
+  private
+    FActivityTrackingOptions: TActivityTrackingOptions;
+  public
+    /// <summary>
+    /// Cria uma nova instância de <see cref="TLoggerFactoryOptions"/>.
+    /// </summary>
+    constructor Create;
+
+    /// <summary>
+    /// Obtém ou define o valor <see cref="TLoggerFactoryOptions"/> para indicar quais partes da informação de contexto de rastreamento devem ser incluídas nos escopos de log.
+    /// </summary>
+    property ActivityTrackingOptions: TActivityTrackingOptions read FActivityTrackingOptions write FActivityTrackingOptions;
+  end;
 
   /// <summary>
   /// Identifica um evento de log. O identificador primário é a propriedade "Id", com a propriedade "Name" fornecendo uma breve descrição deste tipo de evento.
@@ -553,6 +766,12 @@ type
 
 // Função auxiliar
 function LogLevelToString(Level: TLogLevel): string;
+
+const
+  /// <summary>
+  /// Nenhuma das partes do contexto de rastreamento será incluída no log.
+  /// </summary>
+  ATONone: TActivityTrackingOptions = [];
 
 implementation
 
@@ -1290,5 +1509,84 @@ begin
   Result := State.ToString;
 end;
 
+constructor TLoggerFilterRule.Create(const ProviderName: string;
+  const CategoryName: string; LogLevel: TLogLevel; HasLogLevel: Boolean;
+  Filter: TFunc<string, string, TLogLevel, Boolean>);
+begin
+  inherited Create;
+
+  FProviderName := ProviderName;
+  FCategoryName := CategoryName;
+  FLogLevel := LogLevel;
+  FHasLogLevel := HasLogLevel;
+  FFilter := Filter;
+end;
+
+function TLoggerFilterRule.ToString: string;
+var
+  FilterText: string;
+begin
+  if Assigned(FFilter) then
+    FilterText := '(TODO: IMPLEMENTAR ESSE VALOR VIA RTTI)'
+  else
+    FilterText := 'nil';
+
+  Result := Format('%s: ''%s'', %s: ''%s'', %s: ''%s'', %s: ''%s''',
+    ['ProviderName', FProviderName,
+     'CategoryName', FCategoryName,
+     'LogLevel', TLogicalUtils.IfThen(FHasLogLevel, GetEnumName(TypeInfo(TLogLevel), Ord(FLogLevel)), 'null'),
+     'Filter', FilterText]);
+end;
+
+constructor TLoggerFilterOptions.Create;
+begin
+  inherited Create;
+  FCaptureScopes := True;
+  FMinLevel := TLogLevel.None;
+  FRulesInternal := TList<TLoggerFilterRule>.Create;
+end;
+
+destructor TLoggerFilterOptions.Destroy;
+begin
+  FRulesInternal.Free;
+  inherited Destroy;
+end;
+
+function TLoggerFilterOptions.GetRules: TList<TLoggerFilterRule>;
+begin
+  Result := FRulesInternal;
+end;
+
+function TLoggerFilterOptions.DebuggerToString: string;
+var
+  DebugText: string;
+begin
+  if FMinLevel <> TLogLevel.None then
+  begin
+    DebugText := Format('MinLevel = %s', [GetEnumName(TypeInfo(TLogLevel), Ord(FMinLevel))]);
+  end
+  else
+  begin
+    // Exibe "Enabled = false". Isso deixa claro que o ILogger inteiro
+    // está desativado e nada é escrito.
+    //
+    // Se "MinLevel = None" fosse exibido, alguém poderia pensar que o
+    // nível mínimo está desativado e tudo é escrito.
+    DebugText := 'Enabled = false';
+  end;
+
+  if FRulesInternal.Count > 0 then
+  begin
+    DebugText := DebugText + Format(', Rules = %d', [FRulesInternal.Count]);
+  end;
+
+  Result := DebugText;
+end;
+
+constructor TLoggerFactoryOptions.Create;
+begin
+  inherited Create;
+  FActivityTrackingOptions := ATONone; // Padrão para conjunto vazio
+end;
 
 end.
