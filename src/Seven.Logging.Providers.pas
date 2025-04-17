@@ -36,6 +36,16 @@ type
     function CreateLogTarget: ILogTarget;
   end;
 
+  TJsonFileLogProvider = class(TInterfacedObject, ILogProvider)
+  private
+    FFileName: string;
+    FMinLevel: TLogLevel;
+    FMaxSize: Int64;
+  public
+    constructor Create(const FileName: string; MinLevel: TLogLevel = TLogLevel.Trace; MaxSize: Int64 = 0);
+    function CreateLogTarget: ILogTarget;
+  end;
+
 implementation
 
 { TConsoleLogProvider }
@@ -76,6 +86,20 @@ end;
 function TXmlFileLogProvider.CreateLogTarget: ILogTarget;
 begin
   Result := TXmlFileTarget.Create(FFileName, FMinLevel, FMaxSize);
+end;
+
+{ TJsonFileLogProvider }
+
+constructor TJsonFileLogProvider.Create(const FileName: string; MinLevel: TLogLevel = TLogLevel.Trace; MaxSize: Int64 = 0);
+begin
+  FFileName := FileName;
+  FMinLevel := MinLevel;
+  FMaxSize := MaxSize;
+end;
+
+function TJsonFileLogProvider.CreateLogTarget: ILogTarget;
+begin
+  Result := TJsonFileTarget.Create(FFileName, FMinLevel, FMaxSize);
 end;
 
 end.

@@ -43,6 +43,7 @@ begin
     Config.AddProvider(TConsoleLogProvider.Create(TLogLevel.Debug));
     Config.AddProvider(TFileLogProvider.Create('log.txt', TLogLevel.Debug, 1024*1024));
     Config.AddProvider(TXmlFileLogProvider.Create('log.xml', TLogLevel.Info));
+    Config.AddProvider(TJsonFileLogProvider.Create('log.json', TLogLevel.Trace, 1024*1024));
     Targets := Config.GetTargets;
     ConsoleTarget := Targets[0] as TConsoleTarget;
     ConsoleTarget.AddCategoryMinLevel('TMyService', TLogLevel.Trace);

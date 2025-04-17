@@ -5,7 +5,7 @@
 interface
 
 uses
-  Seven.Logging, System.Classes, System.IOUtils, System.Generics.Collections;
+  Seven.Logging, System.Classes, System.IOUtils, System.Generics.Collections, System.JSON;
 
 type
   TConsoleTarget = class(TInterfacedObject, ILogTarget)
@@ -40,6 +40,22 @@ type
     FMaxSize: Int64;
     FCategoryMinLevels: TDictionary<string, TLogLevel>;
     procedure RotateFile;
+  public
+    constructor Create(const FileName: string; MinLevel: TLogLevel = TLogLevel.Trace; MaxSize: Int64 = 0);
+    destructor Destroy; override;
+    procedure AddCategoryMinLevel(const Category: string; MinLevel: TLogLevel);
+    procedure WriteLog(const Msg: TLogMessage);
+  end;
+
+  TJsonFileTarget = class(TInterfacedObject, ILogTarget)
+  private
+    FFileName: string;
+    FMinLevel: TLogLevel;
+    FMaxSize: Int64;
+    FCategoryMinLevels: TDictionary<string, TLogLevel>;
+    FStreamWriter: TStreamWriter;
+    procedure RotateFile;
+    function ShouldLog(const Msg: TLogMessage): Boolean;
   public
     constructor Create(const FileName: string; MinLevel: TLogLevel = TLogLevel.Trace; MaxSize: Int64 = 0);
     destructor Destroy; override;
@@ -256,6 +272,89 @@ begin
         XmlLine := Format('<log timestamp="%s" category="%s" level="%s">%s</log>',
           [DateTimeToStr(Msg.Timestamp), StringReplace(Msg.Category, '"', '"', [rfReplaceAll]), LogLevelToString(Msg.Level), StringReplace(Msg.Message, '"', '"', [rfReplaceAll])]);
   TFile.AppendAllText(FFileName, XmlLine + sLineBreak);
+end;
+
+{ TJsonFileTarget }
+
+constructor TJsonFileTarget.Create(const FileName: string; MinLevel: TLogLevel = TLogLevel.Trace; MaxSize: Int64 = 0);
+begin
+  FFileName := FileName;
+  FMinLevel := MinLevel;
+  FMaxSize := MaxSize;
+  FCategoryMinLevels := TDictionary<string, TLogLevel>.Create;
+  FStreamWriter := TStreamWriter.Create(FFileName, True); // Append mode
+end;
+
+destructor TJsonFileTarget.Destroy;
+begin
+  FCategoryMinLevels.Free;
+  if Assigned(FStreamWriter) then
+    FStreamWriter.Free;
+  inherited;
+end;
+
+procedure TJsonFileTarget.AddCategoryMinLevel(const Category: string; MinLevel: TLogLevel);
+begin
+  FCategoryMinLevels.AddOrSetValue(Category, MinLevel);
+end;
+
+function TJsonFileTarget.ShouldLog(const Msg: TLogMessage): Boolean;
+var
+  EffectiveMinLevel: TLogLevel;
+begin
+  if FCategoryMinLevels.TryGetValue(Msg.Category, EffectiveMinLevel) then
+    Result := Ord(Msg.Level) >= Ord(EffectiveMinLevel)
+  else
+    Result := Ord(Msg.Level) >= Ord(FMinLevel);
+end;
+
+procedure TJsonFileTarget.RotateFile;
+var
+  NewName: string;
+begin
+  if Assigned(FStreamWriter) then
+  begin
+    FStreamWriter.Close;
+    FStreamWriter.Free;
+    FStreamWriter := nil;
+  end;
+  NewName := ChangeFileExt(FFileName, '') + '_' + FormatDateTime('yyyymmdd_hhnnss', Now) + ExtractFileExt(FFileName);
+  TFile.Move(FFileName, NewName);
+  FStreamWriter := TStreamWriter.Create(FFileName, True);
+end;
+
+procedure TJsonFileTarget.WriteLog(const Msg: TLogMessage);
+var
+  Json: TJSONObject;
+  EventIdObj: TJSONObject;
+begin
+  if not ShouldLog(Msg) then
+    Exit;
+  if (FMaxSize > 0) and TFile.Exists(FFileName) and (TFile.GetSize(FFileName) >= FMaxSize) then
+    RotateFile;
+  Json := TJSONObject.Create;
+  try
+    Json.AddPair('timestamp', FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Msg.Timestamp));
+    Json.AddPair('category', Msg.Category);
+    Json.AddPair('level', LogLevelToString(Msg.Level));
+    Json.AddPair('message', Msg.Message);
+    if Msg.Scope <> '' then
+      Json.AddPair('scope', Msg.Scope);
+    if Msg.EventId.Id <> 0 then
+    begin
+      EventIdObj := TJSONObject.Create;
+      EventIdObj.AddPair('id', TJSONNumber.Create(Msg.EventId.Id));
+      EventIdObj.AddPair('name', Msg.EventId.Name);
+      Json.AddPair('eventId', EventIdObj);
+    end;
+    if Msg.ExceptionMessage <> '' then
+      Json.AddPair('exception', Msg.ExceptionMessage)
+    else
+      Json.AddPair('exception', TJSONNull.Create);
+    FStreamWriter.WriteLine(Json.ToString);
+  finally
+    Json.Free;
+  end;
 end;
 
 end.
