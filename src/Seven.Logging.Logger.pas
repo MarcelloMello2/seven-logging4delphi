@@ -124,7 +124,7 @@ begin
       CurrentLogger := ExLoggers[I].Logger as TLogger;
 
       try
-        CurrentLogger.Log<TState>(LogLevel, EventId, State, AException, Formatter);
+        CurrentLogger.Log(LogLevel, EventId, State, AException, Formatter);
       except
         on Ex: Exception do
         begin
