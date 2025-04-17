@@ -194,28 +194,6 @@ type
   end;
 
 
-  /// <summary>
-  /// Representa um armazenamento de dados de escopo comuns.
-  /// </summary>
-  IExternalScopeProvider = interface
-    ['{D6E7F8A9-B0C1-42D3-E4F5-A6B7C8D9E0F1}'] // GUID único para a interface
-
-    /// <summary>
-    /// Executa callback para cada objeto de escopo atualmente ativo em ordem de criação.
-    /// Todos os callbacks têm garantia de serem chamados em linha a partir deste método.
-    /// </summary>
-    /// <param name="Callback">O callback a ser executado para cada objeto de escopo.</param>
-    /// <param name="State">O objeto de estado a ser passado para o callback.</param>
-    /// <typeparam name="TState">O tipo de estado a ser aceito.</typeparam>
-    procedure ForEachScope(const Callback: TProc<TObject, TValue>; const State: TValue);
-
-    /// <summary>
-    /// Adiciona objeto de escopo à lista.
-    /// </summary>
-    /// <param name="State">O objeto de escopo.</param>
-    /// <returns>O token <see cref="IDisposable"/> que remove o escopo ao ser liberado.</returns>
-    function Push(const State: TObject): IDisposable;
-  end;
 
   /// <summary>
   /// As opções para um LoggerFilter.
@@ -375,6 +353,127 @@ type
   end;
 
   /// <summary>
+  /// Estrutura para registrar mensagens de log.
+  /// </summary>
+  TMessageLogger = record
+  private
+    FLogger: ILogger;
+    FCategory: string;
+    FProviderTypeFullName: string;
+    FMinLevel: TLogLevel;
+    FHasMinLevel: Boolean;
+    FFilter: TFunc<string, string, TLogLevel, Boolean>;
+  public
+    /// <summary>
+    /// Cria uma nova instância de <see cref="TMessageLogger"/>.
+    /// </summary>
+    constructor Create(const Logger: ILogger; const Category: string;
+      const ProviderTypeFullName: string = ''; MinLevel: TLogLevel = TLogLevel.None;
+      HasMinLevel: Boolean = False; Filter: TFunc<string, string, TLogLevel, Boolean> = nil);
+
+    /// <summary>
+    /// Obtém o logger.
+    /// </summary>
+    property Logger: ILogger read FLogger;
+
+    /// <summary>
+    /// Obtém a categoria.
+    /// </summary>
+    property Category: string read FCategory;
+
+    /// <summary>
+    /// Obtém o nome completo do tipo do provedor.
+    /// </summary>
+    property ProviderTypeFullName: string read FProviderTypeFullName;
+
+    /// <summary>
+    /// Obtém o nível mínimo de log.
+    /// </summary>
+    property MinLevel: TLogLevel read FMinLevel;
+
+    /// <summary>
+    /// Indica se um nível mínimo foi especificado.
+    /// </summary>
+    property HasMinLevel: Boolean read FHasMinLevel;
+
+    /// <summary>
+    /// Obtém o filtro.
+    /// </summary>
+    property Filter: TFunc<string, string, TLogLevel, Boolean> read FFilter;
+
+    /// <summary>
+    /// Verifica se um determinado nível de log está habilitado.
+    /// </summary>
+    function IsEnabled(Level: TLogLevel): Boolean;
+  end;
+
+  /// <summary>
+  /// Representa um armazenamento de dados de escopo comuns.
+  /// </summary>
+  IExternalScopeProvider = interface
+    ['{D6E7F8A9-B0C1-42D3-E4F5-A6B7C8D9E0F1}'] // GUID único para a interface
+
+    /// <summary>
+    /// Executa callback para cada objeto de escopo atualmente ativo em ordem de criação.
+    /// Todos os callbacks têm garantia de serem chamados em linha a partir deste método.
+    /// </summary>
+    /// <param name="Callback">O callback a ser executado para cada objeto de escopo.</param>
+    /// <param name="State">O objeto de estado a ser passado para o callback.</param>
+    /// <typeparam name="TState">O tipo de estado a ser aceito.</typeparam>
+    procedure ForEachScope(const Callback: TProc<TObject, TValue>; const State: TValue);
+
+    /// <summary>
+    /// Adiciona objeto de escopo à lista.
+    /// </summary>
+    /// <param name="State">O objeto de escopo.</param>
+    /// <returns>O token <see cref="IDisposable"/> que remove o escopo ao ser liberado.</returns>
+    function Push(const State: TObject): IDisposable;
+  end;
+
+  /// <summary>
+  /// Representa um <see cref="ILoggerProvider"/> que é capaz de consumir informações de escopo externas.
+  /// </summary>
+  ISupportExternalScope = interface
+    ['{A9B8C7D6-E5F4-43A2-B1C0-D9E8F7A6B5C4}'] // GUID único para a interface
+
+    /// <summary>
+    /// Define a fonte de informações de escopo externo para o provedor de logger.
+    /// </summary>
+    /// <param name="scopeProvider">O provedor de dados de escopo.</param>
+    procedure SetScopeProvider(const scopeProvider: IExternalScopeProvider);
+  end;
+
+  /// <summary>
+  /// Estrutura para registrar logs com escopo.
+  /// </summary>
+  TScopeLogger = record
+  private
+    FLogger: ILogger;
+    FExternalScopeProvider: IExternalScopeProvider;
+  public
+    /// <summary>
+    /// Cria uma nova instância de <see cref="TScopeLogger"/>.
+    /// </summary>
+    constructor Create(const Logger: ILogger;
+      const ExternalScopeProvider: IExternalScopeProvider);
+
+    /// <summary>
+    /// Obtém o logger.
+    /// </summary>
+    property Logger: ILogger read FLogger;
+
+    /// <summary>
+    /// Obtém o provedor de escopo externo.
+    /// </summary>
+    property ExternalScopeProvider: IExternalScopeProvider read FExternalScopeProvider;
+
+    /// <summary>
+    /// Cria um novo escopo.
+    /// </summary>
+    function CreateScope<TState>(const State: TState): IDisposable;
+  end;
+
+  /// <summary>
   /// Representa um tipo que pode criar instâncias de <see cref="ILogger"/>.
   /// </summary>
   ILoggerProvider = interface(IInterface)
@@ -387,6 +486,45 @@ type
     /// <returns>A instância de <see cref="ILogger"/> que foi criada.</returns>
     function CreateLogger(const categoryName: string): ILogger;
   end;
+
+
+  /// <summary>
+  /// Estrutura para armazenar informações sobre um logger.
+  /// </summary>
+  TLoggerInformation = record
+  private
+    FLogger: ILogger;
+    FCategory: string;
+    FProviderType: TClass;
+    FExternalScope: Boolean;
+  public
+    /// <summary>
+    /// Cria uma nova instância de <see cref="TLoggerInformation"/>.
+    /// </summary>
+    constructor Create(const Provider: ILoggerProvider; const Category: string);
+
+    /// <summary>
+    /// Obtém o logger.
+    /// </summary>
+    property Logger: ILogger read FLogger;
+
+    /// <summary>
+    /// Obtém a categoria.
+    /// </summary>
+    property Category: string read FCategory;
+
+    /// <summary>
+    /// Obtém o tipo do provedor.
+    /// </summary>
+    property ProviderType: TClass read FProviderType;
+
+    /// <summary>
+    /// Indica se o provedor suporta escopo externo.
+    /// </summary>
+    property ExternalScope: Boolean read FExternalScope;
+  end;
+
+
 
   /// <summary>
   /// Representa um tipo usado para configurar o sistema de log e criar instâncias de <see cref="ILogger"/> a partir
@@ -409,7 +547,7 @@ type
     procedure AddProvider(const provider: ILoggerProvider);
   end;
 
-  ILogScopeDispose = interface
+  ILogScopeDispose = interface(IDisposable)
     ['{B2C3D4E5-F678-9012-BCDE-F12345678901}']
     procedure EndScope;
   end;
@@ -1587,6 +1725,58 @@ constructor TLoggerFactoryOptions.Create;
 begin
   inherited Create;
   FActivityTrackingOptions := ATONone; // Padrão para conjunto vazio
+end;
+
+constructor TMessageLogger.Create(const Logger: ILogger; const Category: string;
+  const ProviderTypeFullName: string; MinLevel: TLogLevel;
+  HasMinLevel: Boolean; Filter: TFunc<string, string, TLogLevel, Boolean>);
+begin
+  FLogger := Logger;
+  FCategory := Category;
+  FProviderTypeFullName := ProviderTypeFullName;
+  FMinLevel := MinLevel;
+  FHasMinLevel := HasMinLevel;
+  FFilter := Filter;
+end;
+
+function TMessageLogger.IsEnabled(Level: TLogLevel): Boolean;
+begin
+  if FHasMinLevel and (Level < FMinLevel) then
+    Exit(False);
+
+  if Assigned(FFilter) then
+    Exit(FFilter(FProviderTypeFullName, FCategory, Level));
+
+  Result := True;
+end;
+
+constructor TScopeLogger.Create(const Logger: ILogger;
+  const ExternalScopeProvider: IExternalScopeProvider);
+begin
+  Assert((Logger <> nil) or (ExternalScopeProvider <> nil),
+    'Logger não pode ser nulo quando não há um ExternalScopeProvider');
+
+  FLogger := Logger;
+  FExternalScopeProvider := ExternalScopeProvider;
+end;
+
+function TScopeLogger.CreateScope<TState>(const State: TState): IDisposable;
+begin
+  if FExternalScopeProvider <> nil then
+    Result := FExternalScopeProvider.Push(TObject((@State)^))
+  else
+  begin
+    Assert(FLogger <> nil);
+    Result := FLogger.BeginScope(TValue.From(State));
+  end;
+end;
+
+constructor TLoggerInformation.Create(const Provider: ILoggerProvider; const Category: string);
+begin
+  FProviderType := TObject(Provider).ClassType;
+  FLogger := Provider.CreateLogger(Category);
+  FCategory := Category;
+  FExternalScope := Supports(Provider, ISupportExternalScope);
 end;
 
 end.
