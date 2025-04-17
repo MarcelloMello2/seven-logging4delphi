@@ -31,7 +31,7 @@ begin
   Queue := TLogQueue.Create;
   Targets := TList<ILogTarget>.Create;
   try
-    Targets.Add(TConsoleTarget.Create);
+    Targets.Add(TConsoleTarget.Create());
     Targets.Add(TFileTarget.Create('log.txt'));
     Targets.Add(TXmlFileTarget.Create('log.xml'));
     WriterThread := TLogWriterThread.Create(Queue, Targets);
