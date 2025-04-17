@@ -14,7 +14,7 @@ uses
   System.SyncObjs;
 
 type
-  ILogScope = interface;
+  ILogScopeDispose = interface;
 
   /// <summary>
   /// Define os níveis de severidade de log.
@@ -36,7 +36,7 @@ type
     /// <summary>
     /// Logs que acompanham o fluxo geral da aplicação. Esses logs devem ter valor a longo prazo.
     /// </summary>
-    Info,
+    Information,
 
     /// <summary>
     /// Logs que destacam um evento anormal ou inesperado no fluxo da aplicação, mas que não fazem
@@ -54,7 +54,7 @@ type
     /// Logs que descrevem um travamento não recuperável da aplicação ou do sistema, ou uma falha
     /// catastrófica que requer atenção imediata.
     /// </summary>
-    Fatal,
+    Critical,
 
     /// <summary>
     /// Não é usado para escrever mensagens de log. Especifica que uma categoria de log não deve
@@ -158,7 +158,7 @@ type
     /// <param name="state">O identificador para o escopo.</param>
     /// <typeparam name="TState">O tipo do estado para iniciar o escopo.</typeparam>
     /// <returns>Um <see cref="IDisposable"/> que encerra o escopo de operação lógica ao ser liberado.</returns>
-    function BeginScope(const state: TValue): ILogScope;
+    function BeginScope(const state: TValue): ILogScopeDispose;
   end;
 
   /// <summary>
@@ -196,7 +196,7 @@ type
     procedure AddProvider(const provider: ILoggerProvider);
   end;
 
-  ILogScope = interface
+  ILogScopeDispose = interface
     ['{B2C3D4E5-F678-9012-BCDE-F12345678901}']
     procedure EndScope;
   end;
@@ -256,10 +256,10 @@ type
     /// </summary>
     function Format(const Arg0, Arg1, Arg2: TValue): string; overload;
 
-    /// <summary>
-    /// Formata valores, substituindo-os no array original.
-    /// </summary>
-    function FormatWithOverwrite(var Values: array of TValue): string;
+//    /// <summary>
+//    /// Formata valores, substituindo-os no array original.
+//    /// </summary>
+//    function FormatWithOverwrite(var Values: array of TValue): string;
 
     /// <summary>
     /// Obtém um par chave/valor para o índice especificado.
@@ -315,6 +315,221 @@ type
     // mas podemos implementar IEnumerable
   end;
 
+  TMessageFormatterFunc = function(const AState: TFormattedLogValues; const AError: Exception): string;
+
+  /// <summary>
+  /// Métodos de extensão ILogger para cenários comuns.
+  /// </summary>
+  TLoggerExtensions = class
+  private
+    class var FMessageFormatter: TMessageFormatterFunc;
+    class constructor Create;
+  public
+    //------------------------------------------DEBUG------------------------------------------//
+
+    /// <summary>
+    /// Formata e escreve uma mensagem de log de depuração.
+    /// </summary>
+    /// <param name="Logger">O <see cref="ILogger"/> no qual escrever.</param>
+    /// <param name="EventId">O id do evento associado ao log.</param>
+    /// <param name="Exception">A exceção a ser registrada.</param>
+    /// <param name="Message">String de formato da mensagem do log em formato de template. Exemplo: <c>"Usuário {User} logou de {Address}"</c>.</param>
+    /// <param name="Args">Um array de objetos que contém zero ou mais objetos para formatar.</param>
+    /// <example>
+    /// <code language="delphi">
+    /// TLoggerExtensions.LogDebug(Logger, 0, Exception, 'Erro ao processar requisição de {Address}', [Address]);
+    /// </code>
+    /// </example>
+    class procedure LogDebug(const Logger: ILogger; const EventId: TEventId;
+      const Exception: Exception; const Message: string;
+      const Args: array of TValue); overload; static;
+
+    /// <summary>
+    /// Formata e escreve uma mensagem de log de depuração.
+    /// </summary>
+    /// <param name="Logger">O <see cref="ILogger"/> no qual escrever.</param>
+    /// <param name="EventId">O id do evento associado ao log.</param>
+    /// <param name="Message">String de formato da mensagem do log em formato de template. Exemplo: <c>"Usuário {User} logou de {Address}"</c>.</param>
+    /// <param name="Args">Um array de objetos que contém zero ou mais objetos para formatar.</param>
+    /// <example>
+    /// <code language="delphi">
+    /// TLoggerExtensions.LogDebug(Logger, 0, 'Processando requisição de {Address}', [Address]);
+    /// </code>
+    /// </example>
+    class procedure LogDebug(const Logger: ILogger; const EventId: TEventId;
+      const Message: string; const Args: array of TValue); overload; static;
+
+    /// <summary>
+    /// Formata e escreve uma mensagem de log de depuração.
+    /// </summary>
+    /// <param name="Logger">O <see cref="ILogger"/> no qual escrever.</param>
+    /// <param name="Exception">A exceção a ser registrada.</param>
+    /// <param name="Message">String de formato da mensagem do log em formato de template. Exemplo: <c>"Usuário {User} logou de {Address}"</c>.</param>
+    /// <param name="Args">Um array de objetos que contém zero ou mais objetos para formatar.</param>
+    /// <example>
+    /// <code language="delphi">
+    /// TLoggerExtensions.LogDebug(Logger, Exception, 'Erro ao processar requisição de {Address}', [Address]);
+    /// </code>
+    /// </example>
+    class procedure LogDebug(const Logger: ILogger; const Exception: Exception;
+      const Message: string; const Args: array of TValue); overload; static;
+
+    /// <summary>
+    /// Formata e escreve uma mensagem de log de depuração.
+    /// </summary>
+    /// <param name="Logger">O <see cref="ILogger"/> no qual escrever.</param>
+    /// <param name="Message">String de formato da mensagem do log em formato de template. Exemplo: <c>"Usuário {User} logou de {Address}"</c>.</param>
+    /// <param name="Args">Um array de objetos que contém zero ou mais objetos para formatar.</param>
+    /// <example>
+    /// <code language="delphi">
+    /// TLoggerExtensions.LogDebug(Logger, 'Processando requisição de {Address}', [Address]);
+    /// </code>
+    /// </example>
+    class procedure LogDebug(const Logger: ILogger; const Message: string;
+      const Args: array of TValue); overload; static;
+
+    //------------------------------------------TRACE------------------------------------------//
+
+    /// <summary>
+    /// Formata e escreve uma mensagem de log de rastreamento.
+    /// </summary>
+    class procedure LogTrace(const Logger: ILogger; const EventId: TEventId;
+      const Exception: Exception; const Message: string;
+      const Args: array of TValue); overload; static;
+
+    class procedure LogTrace(const Logger: ILogger; const EventId: TEventId;
+      const Message: string; const Args: array of TValue); overload; static;
+
+    class procedure LogTrace(const Logger: ILogger; const Exception: Exception;
+      const Message: string; const Args: array of TValue); overload; static;
+
+    class procedure LogTrace(const Logger: ILogger; const Message: string;
+      const Args: array of TValue); overload; static;
+
+    //------------------------------------------INFORMATION------------------------------------------//
+
+    /// <summary>
+    /// Formata e escreve uma mensagem de log informativa.
+    /// </summary>
+    class procedure LogInformation(const Logger: ILogger; const EventId: TEventId;
+      const Exception: Exception; const Message: string;
+      const Args: array of TValue); overload; static;
+
+    class procedure LogInformation(const Logger: ILogger; const EventId: TEventId;
+      const Message: string; const Args: array of TValue); overload; static;
+
+    class procedure LogInformation(const Logger: ILogger; const Exception: Exception;
+      const Message: string; const Args: array of TValue); overload; static;
+
+    class procedure LogInformation(const Logger: ILogger; const Message: string;
+      const Args: array of TValue); overload; static;
+
+    //------------------------------------------WARNING------------------------------------------//
+
+    /// <summary>
+    /// Formata e escreve uma mensagem de log de aviso.
+    /// </summary>
+    class procedure LogWarning(const Logger: ILogger; const EventId: TEventId;
+      const Exception: Exception; const Message: string;
+      const Args: array of TValue); overload; static;
+
+    class procedure LogWarning(const Logger: ILogger; const EventId: TEventId;
+      const Message: string; const Args: array of TValue); overload; static;
+
+    class procedure LogWarning(const Logger: ILogger; const Exception: Exception;
+      const Message: string; const Args: array of TValue); overload; static;
+
+    class procedure LogWarning(const Logger: ILogger; const Message: string;
+      const Args: array of TValue); overload; static;
+
+    //------------------------------------------ERROR------------------------------------------//
+
+    /// <summary>
+    /// Formata e escreve uma mensagem de log de erro.
+    /// </summary>
+    class procedure LogError(const Logger: ILogger; const EventId: TEventId;
+      const Exception: Exception; const Message: string;
+      const Args: array of TValue); overload; static;
+
+    class procedure LogError(const Logger: ILogger; const EventId: TEventId;
+      const Message: string; const Args: array of TValue); overload; static;
+
+    class procedure LogError(const Logger: ILogger; const Exception: Exception;
+      const Message: string; const Args: array of TValue); overload; static;
+
+    class procedure LogError(const Logger: ILogger; const Message: string;
+      const Args: array of TValue); overload; static;
+
+    //------------------------------------------CRITICAL------------------------------------------//
+
+    /// <summary>
+    /// Formata e escreve uma mensagem de log crítica.
+    /// </summary>
+    class procedure LogCritical(const Logger: ILogger; const EventId: TEventId;
+      const Exception: Exception; const Message: string;
+      const Args: array of TValue); overload; static;
+
+    class procedure LogCritical(const Logger: ILogger; const EventId: TEventId;
+      const Message: string; const Args: array of TValue); overload; static;
+
+    class procedure LogCritical(const Logger: ILogger; const Exception: Exception;
+      const Message: string; const Args: array of TValue); overload; static;
+
+    class procedure LogCritical(const Logger: ILogger; const Message: string;
+      const Args: array of TValue); overload; static;
+
+    //------------------------------------------LOG------------------------------------------//
+
+    /// <summary>
+    /// Formata e escreve uma mensagem de log no nível especificado.
+    /// </summary>
+    class procedure Log(const Logger: ILogger; const LogLevel: TLogLevel;
+      const Message: string; const Args: array of TValue); overload; static;
+
+    class procedure Log(const Logger: ILogger; const LogLevel: TLogLevel;
+      const EventId: TEventId; const Message: string;
+      const Args: array of TValue); overload; static;
+
+    class procedure Log(const Logger: ILogger; const LogLevel: TLogLevel;
+      const Exception: Exception; const Message: string;
+      const Args: array of TValue); overload; static;
+
+    class procedure Log(const Logger: ILogger; const LogLevel: TLogLevel;
+      const EventId: TEventId; const Exception: Exception;
+      const Message: string; const Args: array of TValue); overload; static;
+
+    //------------------------------------------Scope------------------------------------------//
+
+    /// <summary>
+    /// Formata a mensagem e cria um escopo.
+    /// </summary>
+    /// <param name="Logger">O <see cref="ILogger"/> no qual criar o escopo.</param>
+    /// <param name="MessageFormat">String de formato da mensagem do log em formato de template. Exemplo: <c>"Usuário {User} logou de {Address}"</c>.</param>
+    /// <param name="Args">Um array de objetos que contém zero ou mais objetos para formatar.</param>
+    /// <returns>Um objeto de escopo descartável. Pode ser nulo.</returns>
+    /// <example>
+    /// <code language="delphi">
+    /// var
+    ///   Scope: IDisposable;
+    /// begin
+    ///   Scope := TLoggerExtensions.BeginScope(Logger, 'Processando requisição de {Address}', [Address]);
+    ///   try
+    ///     // Código dentro do escopo
+    ///   finally
+    ///     Scope := nil; // Libera o escopo
+    ///   end;
+    /// end;
+    /// </code>
+    /// </example>
+    class function BeginScope(const Logger: ILogger; const MessageFormat: string;
+      const Args: array of TValue): ILogScopeDispose; static;
+
+  private
+    class function MessageFormatter(const State: TFormattedLogValues;
+      const Error: Exception): string; static;
+  end;
+
+
   /// <summary>
   /// Enumerador para TFormattedLogValues
   /// </summary>
@@ -331,14 +546,13 @@ type
     property Current: TPair<string, TValue> read DoGetCurrent;
   end;
 
-
   TLogicalUtils = class
+    // Função auxiliar para selecionar um valor com base em uma condição
     class function IfThen<T>(Condition: Boolean; const TrueValue, FalseValue: T): T; static;
   end;
 
 // Função auxiliar
 function LogLevelToString(Level: TLogLevel): string;
-// Função auxiliar para selecionar um valor com base em uma condição
 
 implementation
 
@@ -397,10 +611,10 @@ begin
   case Level of
     TLogLevel.Trace: Result := 'TRACE';
     TLogLevel.Debug: Result := 'DEBUG';
-    TLogLevel.Info: Result := 'INFO';
+    TLogLevel.Information: Result := 'INFO';
     TLogLevel.Warning: Result := 'WARNING';
     TLogLevel.Error: Result := 'ERROR';
-    TLogLevel.Fatal: Result := 'FATAL';
+    TLogLevel.Critical: Result := 'CRITICAL';
     TLogLevel.None: Result := 'NONE';
   else
     Result := 'UNKNOWN';
@@ -817,47 +1031,264 @@ begin
   // Se o valor não é uma string, mas implementa IEnumerable
   if not Value.IsType<string> and Value.IsObject then
   begin
-    EnumObject := Value.AsObject;
-
-    if (EnumObject <> nil) and
-       ((EnumObject.ClassName.StartsWith('TEnumerable<') or
-        (Supports(EnumObject, System.IEnumerable) and not (EnumObject is TStrings))) then
-    begin
-      Builder := TStringBuilder.Create(256);
-      try
-        First := True;
-
-        if Supports(EnumObject, IEnumerable) then
-          Enumerator := (EnumObject as IEnumerable).GetEnumerator
-        else
-          Enumerator := (EnumObject as TEnumerable).GetEnumerator;
-
-        while Enumerator.MoveNext do
-        begin
-          if not First then
-            Builder.Append(', ');
-
-          CurrentValue := TValue.FromVariant(Enumerator.Current);
-
-          if CurrentValue.IsEmpty then
-            Builder.Append(NullValue)
-          else
-            Builder.Append(CurrentValue.ToString);
-
-          First := False;
-        end;
-
-        StringValue := Builder.ToString;
-        Result := True;
-      finally
-        Builder.Free;
-      end;
-      Exit;
-    end;
+    raise ENotImplemented.Create('Ainda não fiz isso aqui abaixo');
+//    EnumObject := Value.AsObject;
+//
+//    if (EnumObject <> nil) and
+//       ((EnumObject.ClassName.StartsWith('TEnumerable<') or
+//        (Supports(EnumObject, System.IEnumerable) and not (EnumObject is TStrings))) then
+//    begin
+//      Builder := TStringBuilder.Create(256);
+//      try
+//        First := True;
+//
+//        if Supports(EnumObject, IEnumerable) then
+//          Enumerator := (EnumObject as IEnumerable).GetEnumerator
+//        else
+//          Enumerator := (EnumObject as TEnumerable).GetEnumerator;
+//
+//        while Enumerator.MoveNext do
+//        begin
+//          if not First then
+//            Builder.Append(', ');
+//
+//          CurrentValue := TValue.FromVariant(Enumerator.Current);
+//
+//          if CurrentValue.IsEmpty then
+//            Builder.Append(NullValue)
+//          else
+//            Builder.Append(CurrentValue.ToString);
+//
+//          First := False;
+//        end;
+//
+//        StringValue := Builder.ToString;
+//        Result := True;
+//      finally
+//        Builder.Free;
+//      end;
+//      Exit;
+//    end;
   end;
 
   StringValue := TValue.Empty;
   Result := False;
 end;
+
+{ TLoggerExtensions }
+
+class constructor TLoggerExtensions.Create;
+begin
+  FMessageFormatter := TLoggerExtensions.MessageFormatter;
+end;
+
+// Implementação dos métodos LogDebug
+
+class procedure TLoggerExtensions.LogDebug(const Logger: ILogger; const EventId: TEventId;
+  const Exception: Exception; const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Debug, EventId, Exception, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogDebug(const Logger: ILogger; const EventId: TEventId;
+  const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Debug, EventId, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogDebug(const Logger: ILogger; const Exception: Exception;
+  const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Debug, Exception, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogDebug(const Logger: ILogger; const Message: string;
+  const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Debug, Message, Args);
+end;
+
+// Implementação dos métodos LogTrace
+
+class procedure TLoggerExtensions.LogTrace(const Logger: ILogger; const EventId: TEventId;
+  const Exception: Exception; const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Trace, EventId, Exception, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogTrace(const Logger: ILogger; const EventId: TEventId;
+  const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Trace, EventId, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogTrace(const Logger: ILogger; const Exception: Exception;
+  const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Trace, Exception, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogTrace(const Logger: ILogger; const Message: string;
+  const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Trace, Message, Args);
+end;
+
+// Implementação dos métodos LogInformation
+
+class procedure TLoggerExtensions.LogInformation(const Logger: ILogger; const EventId: TEventId;
+  const Exception: Exception; const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Information, EventId, Exception, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogInformation(const Logger: ILogger; const EventId: TEventId;
+  const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Information, EventId, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogInformation(const Logger: ILogger; const Exception: Exception;
+  const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Information, Exception, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogInformation(const Logger: ILogger; const Message: string;
+  const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Information, Message, Args);
+end;
+
+// Implementação dos métodos LogWarning
+
+class procedure TLoggerExtensions.LogWarning(const Logger: ILogger; const EventId: TEventId;
+  const Exception: Exception; const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Warning, EventId, Exception, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogWarning(const Logger: ILogger; const EventId: TEventId;
+  const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Warning, EventId, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogWarning(const Logger: ILogger; const Exception: Exception;
+  const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Warning, Exception, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogWarning(const Logger: ILogger; const Message: string;
+  const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Warning, Message, Args);
+end;
+
+// Implementação dos métodos LogError
+
+class procedure TLoggerExtensions.LogError(const Logger: ILogger; const EventId: TEventId;
+  const Exception: Exception; const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Error, EventId, Exception, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogError(const Logger: ILogger; const EventId: TEventId;
+  const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Error, EventId, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogError(const Logger: ILogger; const Exception: Exception;
+  const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Error, Exception, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogError(const Logger: ILogger; const Message: string;
+  const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Error, Message, Args);
+end;
+
+// Implementação dos métodos LogCritical
+
+class procedure TLoggerExtensions.LogCritical(const Logger: ILogger; const EventId: TEventId;
+  const Exception: Exception; const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Critical, EventId, Exception, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogCritical(const Logger: ILogger; const EventId: TEventId;
+  const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Critical, EventId, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogCritical(const Logger: ILogger; const Exception: Exception;
+  const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Critical, Exception, Message, Args);
+end;
+
+class procedure TLoggerExtensions.LogCritical(const Logger: ILogger; const Message: string;
+  const Args: array of TValue);
+begin
+  Log(Logger, TLogLevel.Critical, Message, Args);
+end;
+
+// Implementação dos métodos Log
+
+class procedure TLoggerExtensions.Log(const Logger: ILogger; const LogLevel: TLogLevel;
+  const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, LogLevel, TEventId.Create(0), nil, Message, Args);
+end;
+
+class procedure TLoggerExtensions.Log(const Logger: ILogger; const LogLevel: TLogLevel;
+  const EventId: TEventId; const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, LogLevel, EventId, nil, Message, Args);
+end;
+
+class procedure TLoggerExtensions.Log(const Logger: ILogger; const LogLevel: TLogLevel;
+  const Exception: Exception; const Message: string; const Args: array of TValue);
+begin
+  Log(Logger, LogLevel, TEventId.Create(0), Exception, Message, Args);
+end;
+
+class procedure TLoggerExtensions.Log(const Logger: ILogger; const LogLevel: TLogLevel;
+  const EventId: TEventId; const Exception: Exception; const Message: string;
+  const Args: array of TValue);
+var
+  FormattedValues: TFormattedLogValues;
+begin
+  if Logger = nil then
+    raise EArgumentNilException.Create('Logger não pode ser nulo');
+
+  FormattedValues := TFormattedLogValues.Create(Message, Args);
+  raise ENotImplemented.Create('Ainda não fiz isso aqui abaixo');
+  // Logger.Log<TFormattedLogValues>(LogLevel, EventId, FormattedValues, Exception, FMessageFormatter);
+end;
+
+// Implementação de BeginScope
+
+class function TLoggerExtensions.BeginScope(const Logger: ILogger;
+  const MessageFormat: string; const Args: array of TValue): ILogScopeDispose;
+begin
+  if Logger = nil then
+    raise EArgumentNilException.Create('Logger não pode ser nulo');
+
+  raise ENotImplemented.Create('Ainda não fiz isso aqui abaixo');
+//  Result := Logger.BeginScope<TFormattedLogValues>(TFormattedLogValues.Create(MessageFormat, Args));
+end;
+
+// Implementação do MessageFormatter
+class function TLoggerExtensions.MessageFormatter(const State: TFormattedLogValues; const Error: Exception): string;
+begin
+  Result := State.ToString;
+end;
+
 
 end.
