@@ -11,8 +11,8 @@ type
   TLogQueue = class
   private
     FQueue: TThreadedQueue<TLogMessage>;
+    FEvent: TEvent;
     function GetShutDown(): Boolean;
-//    FEvent: TEvent;
   public
     constructor Create;
     destructor Destroy; override;
@@ -41,13 +41,13 @@ implementation
 constructor TLogQueue.Create;
 begin
   FQueue := TThreadedQueue<TLogMessage>.Create(1000);
-//  FEvent := TEvent.Create;
+  FEvent := TEvent.Create;
 end;
 
 destructor TLogQueue.Destroy;
 begin
   FQueue.Free;
-//  FEvent.Free;
+  FEvent.Free;
   inherited;
 end;
 
@@ -64,7 +64,7 @@ end;
 procedure TLogQueue.Enqueue(const Msg: TLogMessage);
 begin
   FQueue.PushItem(Msg);
-//  FEvent.SetEvent;
+  FEvent.SetEvent;
 end;
 
 function TLogQueue.Dequeue(out Msg: TLogMessage): Boolean;
@@ -103,8 +103,9 @@ begin
     else if FQueue.ShutDown then
     begin
       Break;
-//      FQueue.FEvent.WaitFor();
-    end;
+    end
+    else
+      FQueue.FEvent.WaitFor();
 
 
   end;

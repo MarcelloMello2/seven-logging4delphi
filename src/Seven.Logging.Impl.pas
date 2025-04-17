@@ -1,9 +1,11 @@
 ﻿unit Seven.Logging.Impl;
 
+{$SCOPEDENUMS ON}
+
 interface
 
 uses
-  Seven.Logging, Seven.Logging.Queue, System.Generics.Collections, System.Rtti, System.SysUtils;
+  System.SysUtils, Seven.Logging, Seven.Logging.Queue, System.Generics.Collections, System.Rtti;
 
 type
   TLogScope = class(TInterfacedObject, ILogScope)
@@ -23,7 +25,8 @@ type
   public
     constructor Create(Queue: TLogQueue);
     destructor Destroy; override;
-    procedure Log(Level: TLogLevel; const Message: string; Exception: Exception = nil);
+    procedure Log(Level: TLogLevel; const Message: string; Exception: Exception = nil); overload;
+    procedure Log(Level: TLogLevel; EventId: TEventId; const Message: string; Exception: Exception = nil); overload;
     function IsEnabled(Level: TLogLevel): Boolean;
     function BeginScope(const ScopeName: string): ILogScope;
   end;
@@ -70,6 +73,11 @@ begin
 end;
 
 procedure TLogger<T>.Log(Level: TLogLevel; const Message: string; Exception: Exception = nil);
+begin
+  Log(Level, TEventId.Create(0, ''), Message, Exception);
+end;
+
+procedure TLogger<T>.Log(Level: TLogLevel; EventId: TEventId; const Message: string; Exception: Exception = nil);
 var
   Msg: TLogMessage;
   Scope: string;
@@ -80,6 +88,7 @@ begin
     Scope := '';
   Msg.Category := FCategory;
   Msg.Level := Level;
+  Msg.EventId := EventId;
   Msg.Message := Message;
   Msg.Timestamp := Now;
   Msg.Scope := Scope;

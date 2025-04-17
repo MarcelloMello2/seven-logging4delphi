@@ -12,11 +12,12 @@ uses
   Seven.Logging.LogLevels in '..\src\Seven.Logging.LogLevels.pas',
   Seven.Logging in '..\src\Seven.Logging.pas',
   Seven.Logging.Queue in '..\src\Seven.Logging.Queue.pas',
-  Seven.Logging.Targets in '..\src\Seven.Logging.Targets.pas';
+  Seven.Logging.Targets in '..\src\Seven.Logging.Targets.pas',
+  Seven.Logging.Providers in '..\src\Seven.Logging.Providers.pas';
 
 begin
   try
-    TDemoConsoleApp.Run();
+    TDemoConsoleApp.Run2();
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);

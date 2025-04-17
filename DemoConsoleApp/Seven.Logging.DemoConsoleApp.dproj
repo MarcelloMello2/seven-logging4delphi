@@ -112,6 +112,7 @@
         <DCCReference Include="..\src\Seven.Logging.pas"/>
         <DCCReference Include="..\src\Seven.Logging.Queue.pas"/>
         <DCCReference Include="..\src\Seven.Logging.Targets.pas"/>
+        <DCCReference Include="..\src\Seven.Logging.Providers.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -150,6 +151,18 @@
                 </DeployFile>
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule">
                     <Platform Name="OSX32">
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="..\..\Win64\Debug\Seven.Logging.DemoConsoleApp.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win64">
+                        <RemoteName>Seven.Logging.DemoConsoleApp.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="..\..\Win64\Debug\Seven.Logging.DemoConsoleApp.rsm" Configuration="Debug" Class="DebugSymbols">
+                    <Platform Name="Win64">
+                        <RemoteName>Seven.Logging.DemoConsoleApp.rsm</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
