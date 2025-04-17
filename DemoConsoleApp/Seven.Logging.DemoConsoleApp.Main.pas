@@ -40,9 +40,9 @@ begin
   Queue := TLogQueue.Create;
   Config := TLogConfiguration.Create;
   try
-    Config.AddProvider(TConsoleLogProvider.Create(TLogLevel.Warning));
-//    Config.AddProvider(TFileLogProvider.Create('log.txt', TLogLevel.Debug, 1024*1024));
-//    Config.AddProvider(TXmlFileLogProvider.Create('log.xml', TLogLevel.Info));
+    Config.AddProvider(TConsoleLogProvider.Create(TLogLevel.Debug));
+    Config.AddProvider(TFileLogProvider.Create('log.txt', TLogLevel.Debug, 1024*1024));
+    Config.AddProvider(TXmlFileLogProvider.Create('log.xml', TLogLevel.Info));
     Targets := Config.GetTargets;
     ConsoleTarget := Targets[0] as TConsoleTarget;
     ConsoleTarget.AddCategoryMinLevel('TMyService', TLogLevel.Trace);
@@ -50,8 +50,8 @@ begin
     WriterThread := TLogWriterThread.Create(Queue, Targets);
     Logger := TLoggerFactory.CreateLogger<TMyService>(Queue);
 
-    WriterThread := TLogWriterThread.Create(Queue, Targets);
-    Logger := TLoggerFactory.CreateLogger<TMyService>(Queue);
+    Logger.Log(TLogLevel.Trace, 'Deste de trace');
+    Logger.Log(TLogLevel.Debug, 'Deste de debug');
 
     Logger.Log(TLogLevel.Info, 'Início da operação');
 
