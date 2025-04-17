@@ -1,4 +1,4 @@
-﻿unit Seven.Logging;
+﻿unit Seven.Logging.Types;
 
 {$SCOPEDENUMS ON}
 
@@ -902,6 +902,34 @@ type
     class function IfThen<T>(Condition: Boolean; const TrueValue, FalseValue: T): T; static;
   end;
 
+  /// <summary>
+  /// Exceção que agrega múltiplas exceções.
+  /// </summary>
+  EAggregateException = class(Exception)
+  private
+    FInnerExceptions: TList<Exception>;
+  public
+    constructor Create(const Msg: string); overload;
+    constructor Create(const Msg: string; const InnerExceptions: TList<Exception>); overload;
+    destructor Destroy; override;
+
+    property InnerExceptions: TList<Exception> read FInnerExceptions;
+  end;
+
+  /// <summary>
+  /// Implementação de IDisposable que não faz nada.
+  /// </summary>
+  TNullScope = class(TInterfacedObject, IDisposable)
+  private
+    class var FInstance: IDisposable;
+    class constructor Create;
+    class destructor Destroy;
+  public
+    procedure Dispose;
+    class property Instance: IDisposable read FInstance;
+  end;
+
+
 // Função auxiliar
 function LogLevelToString(Level: TLogLevel): string;
 
@@ -1777,6 +1805,39 @@ begin
   FLogger := Provider.CreateLogger(Category);
   FCategory := Category;
   FExternalScope := Supports(Provider, ISupportExternalScope);
+end;
+
+constructor EAggregateException.Create(const Msg: string);
+begin
+  inherited Create(Msg);
+  FInnerExceptions := TList<Exception>.Create;
+end;
+
+constructor EAggregateException.Create(const Msg: string; const InnerExceptions: TList<Exception>);
+begin
+  Create(Msg);
+  FInnerExceptions.AddRange(InnerExceptions);
+end;
+
+destructor EAggregateException.Destroy;
+begin
+  FInnerExceptions.Free;
+  inherited;
+end;
+
+class constructor TNullScope.Create;
+begin
+  FInstance := TNullScope.Create;
+end;
+
+class destructor TNullScope.Destroy;
+begin
+  FInstance := nil;
+end;
+
+procedure TNullScope.Dispose;
+begin
+  // Não faz nada
 end;
 
 end.

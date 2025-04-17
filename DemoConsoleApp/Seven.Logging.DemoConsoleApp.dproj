@@ -106,8 +106,9 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="..\src\Seven.Logging.pas"/>
+        <DCCReference Include="..\src\Seven.Logging.Types.pas"/>
         <DCCReference Include="Seven.Logging.DemoConsoleApp.Main.pas"/>
+        <DCCReference Include="..\src\Seven.Logging.Logger.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

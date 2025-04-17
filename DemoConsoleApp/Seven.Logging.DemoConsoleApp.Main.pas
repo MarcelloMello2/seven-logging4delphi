@@ -2,8 +2,8 @@ unit Seven.Logging.DemoConsoleApp.Main;
 
 interface
 
-uses
-  Seven.Logging;
+//uses
+//  Seven.Logging;
 
 type
 

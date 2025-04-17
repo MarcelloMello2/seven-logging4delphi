@@ -7,8 +7,9 @@ program Seven.Logging.DemoConsoleApp;
 uses
   System.SysUtils,
   System.Classes,
-  Seven.Logging in '..\src\Seven.Logging.pas',
-  Seven.Logging.DemoConsoleApp.Main in 'Seven.Logging.DemoConsoleApp.Main.pas';
+  Seven.Logging.Types in '..\src\Seven.Logging.Types.pas',
+  Seven.Logging.DemoConsoleApp.Main in 'Seven.Logging.DemoConsoleApp.Main.pas',
+  Seven.Logging.Logger in '..\src\Seven.Logging.Logger.pas';
 
 begin
   try
