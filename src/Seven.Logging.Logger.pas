@@ -53,8 +53,8 @@ type
       const State: TState; const AException: Exception;
       const Formatter: TFunc<TState, Exception, string>); overload;
 
-    procedure Log(const logLevel: TLogLevel; const eventId: TEventId; const state: TValue;
-                          const AException: Exception = nil; const formatter: TFunc<TValue, Exception, string> = nil); overload;
+//    procedure Log(const logLevel: TLogLevel; const eventId: TEventId; const state: TValue;
+//                          const AException: Exception = nil; const formatter: TFunc<TValue, Exception, string> = nil); overload;
 
 
     function IsEnabled(const logLevel: TLogLevel): Boolean;

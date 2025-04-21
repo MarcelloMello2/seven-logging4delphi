@@ -5,7 +5,7 @@
         <FrameworkType>None</FrameworkType>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
-        <Platform Condition="'$(Platform)'==''">Win64</Platform>
+        <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <ProjectName Condition="'$(ProjectName)'==''">Seven.Logging.DemoConsoleApp</ProjectName>
         <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Console</AppType>
@@ -150,20 +150,14 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="..\..\Win64\Debug\Seven.Logging.DemoConsoleApp.exe" Configuration="Debug" Class="ProjectOutput">
-                    <Platform Name="Win64">
+                <DeployFile LocalName="..\..\Win32\Debug\Seven.Logging.DemoConsoleApp.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
                         <RemoteName>Seven.Logging.DemoConsoleApp.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="..\..\Win64\Debug\Seven.Logging.DemoConsoleApp.rsm" Configuration="Debug" Class="DebugSymbols">
+                <DeployFile LocalName="..\..\Win64\Debug\Seven.Logging.DemoConsoleApp.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win64">
-                        <RemoteName>Seven.Logging.DemoConsoleApp.rsm</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="Win32\Debug\Seven.Logging.DemoConsoleApp.exe" Configuration="Debug" Class="ProjectOutput">
-                    <Platform Name="Win32">
                         <RemoteName>Seven.Logging.DemoConsoleApp.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
